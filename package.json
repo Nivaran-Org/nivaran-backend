@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "description": "Express &amp; Postgres logic.",
   "main": "index.js",
+  "type": "module",
+  
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
+    
   },
   "repository": {
     "type": "git",

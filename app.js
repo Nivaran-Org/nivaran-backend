@@ -4,6 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import "./src/config/db.js";
 import userRoutes from "./src/routes/userRoutes.js";
+import authRoutes from "./src/routes/authRoutes.js";
 
 // Load environment variables
 dotenv.config();
@@ -15,6 +16,7 @@ app.use(cors());
 app.use(express.json());
 app.use("/api", testRoutes);
 app.use("/api", userRoutes);
+app.use("/api/auth", authRoutes);
 
 // Test route
 app.get("/", (req, res) => {

@@ -2,6 +2,7 @@ import testRoutes from "./src/routes/testRoutes.js";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import "./src/config/db.js";
 
 // Load environment variables
 dotenv.config();

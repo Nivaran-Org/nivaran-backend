@@ -26,3 +26,27 @@ export const createComplaint = async (data) => {
     throw error;
   }
 };
+
+export const getComplaints = async (user) => {
+  try {
+    let result;
+
+    // If admin → get all complaints
+    if (user.role === "admin") {
+      result = await pool.query("SELECT * FROM complaints ORDER BY created_at DESC");
+    } 
+    // If normal user → get only their complaints
+    else {
+      result = await pool.query(
+        "SELECT * FROM complaints WHERE user_id = $1 ORDER BY created_at DESC",
+        [user.id]
+      );
+    }
+
+    return result.rows;
+
+  } catch (error) {
+    console.error("Error fetching complaints:", error);
+    throw error;
+  }
+};

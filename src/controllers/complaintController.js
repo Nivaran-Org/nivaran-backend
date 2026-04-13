@@ -1,4 +1,5 @@
-import { createComplaint } from "../models/complaintModel.js";
+import { createComplaint, getComplaints } from "../models/complaintModel.js";
+// import { getComplaints } from "../models/complaintModel.js";
 
 export const addComplaint = async (req, res) => {
   try {
@@ -30,6 +31,29 @@ export const addComplaint = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to create complaint"
+    });
+  }
+};
+
+
+
+export const fetchComplaints = async (req, res) => {
+  try {
+    const user = req.user;
+
+    const complaints = await getComplaints(user);
+
+    res.json({
+      success: true,
+      data: complaints
+    });
+
+  } catch (error) {
+    console.error("Fetch complaints error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch complaints"
     });
   }
 };

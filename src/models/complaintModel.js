@@ -7,16 +7,28 @@ export const createComplaint = async (data) => {
     description,
     photo_url,
     latitude,
-    longitude
+    longitude,
+    ai_suggested_dept = null,
+    ai_confidence_score = null
   } = data;
 
   try {
     const result = await pool.query(
-      `INSERT INTO complaints 
-      (user_id, title, description, photo_url, latitude, longitude) 
-      VALUES ($1, $2, $3, $4, $5, $6) 
+      `INSERT INTO complaints
+      (user_id, title, description, photo_url, latitude, longitude,
+       ai_suggested_dept, ai_confidence_score)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *`,
-      [user_id, title, description, photo_url, latitude, longitude]
+      [
+        user_id,
+        title,
+        description,
+        photo_url,
+        latitude,
+        longitude,
+        ai_suggested_dept,
+        ai_confidence_score
+      ]
     );
 
     return result.rows[0];

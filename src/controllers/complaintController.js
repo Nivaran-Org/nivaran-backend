@@ -1,4 +1,4 @@
-import { createComplaint, getComplaints, updateComplaintStatus } from "../models/complaintModel.js";
+import { createComplaint, getComplaints, updateComplaintStatus, assignComplaint } from "../models/complaintModel.js";
 // import { getComplaints } from "../models/complaintModel.js";
 const routeWithAI = async (description) => {
   try {
@@ -115,6 +115,43 @@ export const updateComplaint = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to update complaint"
+    });
+  }
+};
+
+export const assignComplaintToOfficer = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { officer_id } = req.body;
+
+    if (!officer_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Officer ID is required"
+      });
+    }
+
+    const updatedComplaint = await assignComplaint(id, officer_id);
+
+    if (!updatedComplaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Complaint not found"
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Complaint assigned to officer successfully",
+      data: updatedComplaint
+    });
+
+  } catch (error) {
+    console.error("Assign error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to assign complaint"
     });
   }
 };

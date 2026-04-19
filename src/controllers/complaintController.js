@@ -1,5 +1,11 @@
-import { createComplaint, getComplaints, updateComplaintStatus, assignComplaint } from "../models/complaintModel.js";
-// import { getComplaints } from "../models/complaintModel.js";
+import {
+  createComplaint,
+  getComplaints,
+  updateComplaintStatus,
+  assignComplaint,
+  getOfficerComplaints
+} from "../models/complaintModel.js";
+
 const routeWithAI = async (description) => {
   try {
     const response = await fetch("http://localhost:8000/route", {
@@ -152,6 +158,64 @@ export const assignComplaintToOfficer = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to assign complaint"
+    });
+  }
+};
+
+export const getOfficerAssignedComplaints = async (req, res) => {
+  try {
+    const officer_id = req.user.id;
+
+    const complaints = await getOfficerComplaints(officer_id);
+
+    res.json({
+      success: true,
+      data: complaints
+    });
+
+  } catch (error) {
+    console.error("Officer fetch error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch officer complaints"
+    });
+  }
+};
+
+export const officerUpdateComplaint = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const officer_id = req.user.id;
+
+    // OPTIONAL: ensure officer is assigned to this complaint
+    const complaints = await getOfficerComplaints(officer_id);
+    const isAssigned = complaints.find(c => c.id == id);
+
+    if (!isAssigned) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not assigned to this complaint"
+      });
+    }
+ 
+    const updatedComplaint = await updateComplaintStatus(id, status);
+    
+    res.json({
+      success: true,
+      message: "Complaint updated by officer",
+      data: updatedComplaint
+    });
+
+  } catch (error) {
+    console.error("Officer update error:", error);
+
+    
+    res.status(500).json({
+      success: false,
+      message: "Failed to update complaint"
     });
   }
 };

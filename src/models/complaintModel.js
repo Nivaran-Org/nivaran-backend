@@ -50,3 +50,18 @@ export const getComplaints = async (user) => {
     throw error;
   }
 };
+
+export const updateComplaintStatus = async (id, status) => {
+  try {
+    const result = await pool.query(
+      "UPDATE complaints SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *",
+      [status, id]
+    );
+
+    return result.rows[0];
+
+  } catch (error) {
+    console.error("Error updating complaint:", error);
+    throw error;
+  }
+};

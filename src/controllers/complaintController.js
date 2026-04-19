@@ -1,4 +1,4 @@
-import { createComplaint, getComplaints } from "../models/complaintModel.js";
+import { createComplaint, getComplaints, updateComplaintStatus } from "../models/complaintModel.js";
 // import { getComplaints } from "../models/complaintModel.js";
 
 export const addComplaint = async (req, res) => {
@@ -54,6 +54,37 @@ export const fetchComplaints = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch complaints"
+    });
+  }
+};
+
+
+export const updateComplaint = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const updatedComplaint = await updateComplaintStatus(id, status);
+
+    if (!updatedComplaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Complaint not found"
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Complaint updated successfully",
+      data: updatedComplaint
+    });
+
+  } catch (error) {
+    console.error("Update error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to update complaint"
     });
   }
 };

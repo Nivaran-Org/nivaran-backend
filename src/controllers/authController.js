@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import pool from "../config/db.js";
 import jwt from "jsonwebtoken";
 
+// ================= REGISTER =================
 export const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -29,11 +30,15 @@ export const registerUser = async (req, res) => {
       [name, email, hashedPassword]
     );
 
-    // 4. Send response
+    // 4. Remove password before sending response ✅
+    const user = newUser.rows[0];
+    delete user.password;
+
+    // 5. Send response
     res.status(201).json({
       success: true,
       message: "User registered successfully",
-      data: newUser.rows[0]
+      data: user
     });
 
   } catch (error) {
@@ -46,7 +51,7 @@ export const registerUser = async (req, res) => {
   }
 };
 
-
+// ================= LOGIN =================
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -87,7 +92,7 @@ export const loginUser = async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    // 4. Remove password before sending response
+    // 4. Remove password before sending response ✅
     delete user.password;
 
     // 5. Send response

@@ -39,3 +39,24 @@ export const adminMiddleware = (req, res, next) => {
 next();
 
 };
+
+export const officerMiddleware = (req, res, next) => {
+  try {
+    if (req.user.role !== "officer") {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied: Officers only"
+      });
+    }
+
+    next();
+
+  } catch (error) {
+    console.error("Officer middleware error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};

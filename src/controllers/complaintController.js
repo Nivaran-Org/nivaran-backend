@@ -1,12 +1,37 @@
 import { createComplaint, getComplaints, updateComplaintStatus } from "../models/complaintModel.js";
 // import { getComplaints } from "../models/complaintModel.js";
+const routeWithAI = async (description) => {
+  try {
+    const response = await fetch("http://localhost:8000/route", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ complaint: description }),
+    });
+
+    if (!response.ok) throw new Error("AI service error");
+
+    return await response.json();
+  } catch (err) {
+    console.warn("AI routing failed:", err.message);
+
+    return {
+      department: "Unassigned",
+      confidence: 0,
+      status: "AI Unavailable",
+    };
+  }
+};
 
 export const addComplaint = async (req, res) => {
   try {
     const { title, description, latitude, longitude, photo_url } = req.body;
 
-    // get user from JWT
     const user_id = req.user.id;
+
+    // 🤖 Call AI
+    const aiResult = await routeWithAI(description);
 
     const complaintData = {
       user_id,
@@ -14,7 +39,12 @@ export const addComplaint = async (req, res) => {
       description,
       photo_url,
       latitude,
-      longitude
+      longitude,
+
+      // AI fields
+      department: aiResult.department,
+      ai_confidence: aiResult.confidence,
+      ai_status: aiResult.status,
     };
 
     const newComplaint = await createComplaint(complaintData);
@@ -22,7 +52,7 @@ export const addComplaint = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "Complaint created successfully",
-      data: newComplaint
+      data: newComplaint,
     });
 
   } catch (error) {
@@ -30,7 +60,7 @@ export const addComplaint = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: "Failed to create complaint"
+      message: "Failed to create complaint",
     });
   }
 };

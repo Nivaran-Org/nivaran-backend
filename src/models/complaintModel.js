@@ -92,3 +92,18 @@ export const assignComplaint = async (id, officer_id) => {
     throw error;
   }
 };
+
+export const getOfficerComplaints = async (officer_id) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM complaints WHERE assigned_to = $1 ORDER BY created_at DESC",
+      [officer_id]
+    );
+
+    return result.rows;
+
+  } catch (error) {
+    console.error("Error fetching officer complaints:", error);
+    throw error;
+  }
+};

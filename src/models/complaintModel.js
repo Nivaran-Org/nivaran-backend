@@ -77,3 +77,18 @@ export const updateComplaintStatus = async (id, status) => {
     throw error;
   }
 };
+
+export const assignComplaint = async (id, officer_id) => {
+  try {
+    const result = await pool.query(
+      "UPDATE complaints SET assigned_to = $1 WHERE id = $2 RETURNING *",
+      [officer_id, id]
+    );
+
+    return result.rows[0];
+
+  } catch (error) {
+    console.error("Error assigning complaint:", error);
+    throw error;
+  }
+};

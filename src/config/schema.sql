@@ -1,3 +1,8 @@
+-- ========================
+-- Nivaran Database Schema
+-- ========================
+
+-- Users table (citizens, officers, admins)
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
@@ -7,6 +12,7 @@ CREATE TABLE users (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Complaints table (AI-routed grievances)
 CREATE TABLE complaints (
   id SERIAL PRIMARY KEY,
   user_id INT REFERENCES users(id) ON DELETE CASCADE,
@@ -15,15 +21,22 @@ CREATE TABLE complaints (
   photo_url TEXT,
   latitude DECIMAL(9,6),
   longitude DECIMAL(9,6),
-  ai_suggested_dept VARCHAR(100),
-  ai_confidence_score DECIMAL(5,2),
-  final_dept VARCHAR(100),
-  priority VARCHAR(20) DEFAULT 'medium',
+
+  -- AI routing fields
+  department VARCHAR(255) DEFAULT 'Unassigned',
+  ai_confidence FLOAT DEFAULT 0,
+  ai_status VARCHAR(100) DEFAULT 'Pending',
+
+  -- Assignment & status
+  assigned_to INT REFERENCES users(id),
   status VARCHAR(20) DEFAULT 'pending',
+  priority VARCHAR(20) DEFAULT 'medium',
+
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Complaint updates (audit trail of status changes)
 CREATE TABLE complaint_updates (
   id SERIAL PRIMARY KEY,
   complaint_id INT REFERENCES complaints(id) ON DELETE CASCADE,

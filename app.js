@@ -26,6 +26,8 @@ app.use("/api", testRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/users", userRoutes);
+// This tells Express to treat the 'uploads' folder as a public directory
+app.use("/uploads", express.static("uploads"));
 
 app.get("/", (req, res) => res.send("Nivaran Backend running 🚀"));
 

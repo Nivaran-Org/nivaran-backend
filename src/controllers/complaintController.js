@@ -5,6 +5,8 @@ import {
   assignComplaint,
   getOfficerComplaints
 } from "../models/complaintModel.js";
+import pool from "../config/db.js";
+
 
 const routeWithAI = async (title, description) => {
   try {
@@ -122,9 +124,47 @@ export const getOfficerAssignedComplaints = async (req, res) => {
 
 export const officerUpdateComplaint = async (req, res) => {
   try {
-    const updated = await updateComplaintStatus(req.params.id, req.body.status);
-    res.json({ success: true, data: updated });
+    const { id } = req.params;
+    const { status, remarks } = req.body;
+    
+    // Check if a file was actually uploaded via Multer
+    if (!req.file) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Rectification photo is required to close this complaint." 
+      });
+    }
+
+    const rectifiedImageUrl = `/uploads/${req.file.filename}`;
+
+    // THE FIX: Execute the SQL query with double-quoted case-sensitive columns
+    const query = `
+      UPDATE complaints 
+      SET 
+        status = $1, 
+        "officerRemarks" = $2, 
+        "rectifiedImageUrl" = $3, 
+        "updatedAt" = NOW() 
+      WHERE id = $4
+      RETURNING *;
+    `;
+
+    const values = [status || 'resolved', remarks, rectifiedImageUrl, id];
+    const result = await pool.query(query, values); // Use your DB pool here
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, message: "Complaint not found" });
+    }
+
+    console.log("Database updated successfully for ID:", id);
+
+    res.json({ 
+      success: true, 
+      message: "Complaint resolved with photo proof.",
+      data: result.rows[0] 
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Update failed" });
+    console.error("Officer update error:", error);
+    res.status(500).json({ success: false, message: "Internal server error during update" });
   }
 };

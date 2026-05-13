@@ -24,5 +24,13 @@ router.get("/officer", authMiddleware, officerMiddleware, getOfficerAssignedComp
 router.patch("/:id/status", authMiddleware, officerMiddleware, officerUpdateComplaint);
 router.patch("/:id/assign", authMiddleware, adminMiddleware, assignComplaintToOfficer);
 router.patch("/:id", authMiddleware, adminMiddleware, updateComplaint);
+// Ensure 'rectificationImage' matches your frontend formData.append key
+router.post(
+  "/:id/officer-update", 
+  authMiddleware, 
+  officerMiddleware, 
+  upload.single("rectificationImage"), 
+  officerUpdateComplaint
+);
 
 export default router;

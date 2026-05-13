@@ -72,6 +72,24 @@ export const fetchComplaints = async (req, res) => {
   try {
     const complaints = await getComplaints(req.user);
     res.json({ success: true, data: complaints });
+    const user = req.user;
+
+   // 🆕 Get page & limit from query
+    const { page = 1, limit = 10 } = req.query;
+
+    // 🆕 Pass them to model
+    const complaints = await getComplaints(
+      user,
+      parseInt(page),
+      parseInt(limit)
+    );
+
+    res.json({
+      success: true,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      data: complaints
+    });
   } catch (error) {
     console.error("Fetch complaints error:", error);
     res.status(500).json({ success: false, message: "Failed to fetch complaints" });

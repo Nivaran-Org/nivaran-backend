@@ -39,19 +39,21 @@ export const createComplaint = async (data) => {
     throw error;
   }
 };
-export const getComplaints = async (user) => {
+export const getComplaints = async (user, page = 1, limit = 10) => {
   try {
+    const offset = (page - 1) * limit;
+
     let result;
 
-    // If admin → get all complaints
     if (user.role === "admin") {
-      result = await pool.query("SELECT * FROM complaints ORDER BY created_at DESC");
-    } 
-    // If normal user → get only their complaints
-    else {
       result = await pool.query(
-        "SELECT * FROM complaints WHERE user_id = $1 ORDER BY created_at DESC",
-        [user.id]
+        "SELECT * FROM complaints ORDER BY created_at DESC LIMIT $1 OFFSET $2",
+        [limit, offset]
+      );
+    } else {
+      result = await pool.query(
+        "SELECT * FROM complaints WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
+        [user.id, limit, offset]
       );
     }
 

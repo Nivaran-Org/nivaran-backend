@@ -6,17 +6,25 @@ import {
   getOfficerComplaints
 } from "../models/complaintModel.js";
 
-const routeWithAI = async (description) => {
+const routeWithAI = async (title, description) => {
   try {
+    const fullText = `${title || ""}. ${description || ""}`.trim();
+
+    // If both are empty, default to Unassigned without calling AI
+    if (!fullText) return { department: "Unassigned", confidence: 0, status: "Empty Text" };
+
     const response = await fetch("http://localhost:8000/route", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ complaint: description }),
+      body: JSON.stringify({ complaint: fullText }), // Must use "complaint" key for the Python API
     });
 
-    if (!response.ok) throw new Error("AI service error");
+    if (!response.ok) {
+      throw new Error("AI service error");
+    }
 
-    return await response.json();
+    return await response.json(); 
+    // Returns: { department: "...", confidence: 0.XX, status: "Auto-Routed" }
   } catch (err) {
     console.warn("AI routing failed:", err.message);
     return {
@@ -32,13 +40,15 @@ export const addComplaint = async (req, res) => {
     const { title, description, latitude, longitude } = req.body;
     const user_id = req.user.id;
 
-    // ✅ Handle both multer file upload AND plain photo_url string
+    // Handle photo URL from multer or body
     const photo_url = req.file
       ? `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`
       : req.body.photo_url || null;
 
-    const aiResult = await routeWithAI(description);
+    // 1. Call the AI Routing helper
+    const aiResult = await routeWithAI(title, description);
 
+    // 2. Prepare the data object with AI results
     const complaintData = {
       user_id,
       title,
@@ -46,24 +56,26 @@ export const addComplaint = async (req, res) => {
       photo_url,
       latitude: latitude ? parseFloat(latitude) : null,
       longitude: longitude ? parseFloat(longitude) : null,
-      department: aiResult.department,
+      // Use the department returned by AI, or fallback to "Unassigned"
+      department: aiResult.department || "Unassigned", 
+      // Optional: store confidence and status for debugging
       ai_confidence: aiResult.confidence,
       ai_status: aiResult.status,
     };
 
+    // 3. Create the complaint in the DB
     const newComplaint = await createComplaint(complaintData);
 
     res.status(201).json({
       success: true,
-      message: "Complaint created successfully",
+      message: "Complaint filed and auto-routed successfully",
       data: newComplaint,
     });
-
   } catch (error) {
-    console.error("Complaint error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to create complaint",
+    console.error("Complaint creation error:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to create complaint" 
     });
   }
 };
@@ -72,26 +84,7 @@ export const fetchComplaints = async (req, res) => {
   try {
     const complaints = await getComplaints(req.user);
     res.json({ success: true, data: complaints });
-    const user = req.user;
-
-   // 🆕 Get page & limit from query
-    const { page = 1, limit = 10 } = req.query;
-
-    // 🆕 Pass them to model
-    const complaints = await getComplaints(
-      user,
-      parseInt(page),
-      parseInt(limit)
-    );
-
-    res.json({
-      success: true,
-      page: parseInt(page),
-      limit: parseInt(limit),
-      data: complaints
-    });
   } catch (error) {
-    console.error("Fetch complaints error:", error);
     res.status(500).json({ success: false, message: "Failed to fetch complaints" });
   }
 };
@@ -100,21 +93,10 @@ export const updateComplaint = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-
-    const updatedComplaint = await updateComplaintStatus(id, status);
-
-    if (!updatedComplaint) {
-      return res.status(404).json({ success: false, message: "Complaint not found" });
-    }
-
-    res.json({
-      success: true,
-      message: "Complaint updated successfully",
-      data: updatedComplaint,
-    });
+    const updated = await updateComplaintStatus(id, status);
+    res.json({ success: true, data: updated });
   } catch (error) {
-    console.error("Update error:", error);
-    res.status(500).json({ success: false, message: "Failed to update complaint" });
+    res.status(500).json({ success: false, message: "Update failed" });
   }
 };
 
@@ -122,65 +104,27 @@ export const assignComplaintToOfficer = async (req, res) => {
   try {
     const { id } = req.params;
     const { officer_id } = req.body;
-
-    if (!officer_id) {
-      return res.status(400).json({ success: false, message: "Officer ID is required" });
-    }
-
-    const updatedComplaint = await assignComplaint(id, officer_id);
-
-    if (!updatedComplaint) {
-      return res.status(404).json({ success: false, message: "Complaint not found" });
-    }
-
-    res.json({
-      success: true,
-      message: "Complaint assigned to officer successfully",
-      data: updatedComplaint,
-    });
+    const updated = await assignComplaint(id, officer_id);
+    res.json({ success: true, data: updated });
   } catch (error) {
-    console.error("Assign error:", error);
-    res.status(500).json({ success: false, message: "Failed to assign complaint" });
+    res.status(500).json({ success: false, message: "Assign failed" });
   }
 };
 
 export const getOfficerAssignedComplaints = async (req, res) => {
   try {
-    const officer_id = req.user.id;
-    const complaints = await getOfficerComplaints(officer_id);
+    const complaints = await getOfficerComplaints(req.user.id);
     res.json({ success: true, data: complaints });
   } catch (error) {
-    console.error("Officer fetch error:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch officer complaints" });
+    res.status(500).json({ success: false, message: "Fetch failed" });
   }
 };
 
 export const officerUpdateComplaint = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { status } = req.body;
-    const officer_id = req.user.id;
-
-    // Ensure officer is assigned to this complaint
-    const complaints = await getOfficerComplaints(officer_id);
-    const isAssigned = complaints.find(c => c.id == id);
-
-    if (!isAssigned) {
-      return res.status(403).json({
-        success: false,
-        message: "You are not assigned to this complaint",
-      });
-    }
-
-    const updatedComplaint = await updateComplaintStatus(id, status);
-
-    res.json({
-      success: true,
-      message: "Complaint updated by officer",
-      data: updatedComplaint,
-    });
+    const updated = await updateComplaintStatus(req.params.id, req.body.status);
+    res.json({ success: true, data: updated });
   } catch (error) {
-    console.error("Officer update error:", error);
-    res.status(500).json({ success: false, message: "Failed to update complaint" });
+    res.status(500).json({ success: false, message: "Update failed" });
   }
 };

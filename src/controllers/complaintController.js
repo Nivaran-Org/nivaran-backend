@@ -10,9 +10,7 @@ const routeWithAI = async (description) => {
   try {
     const response = await fetch("http://localhost:8000/route", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ complaint: description }),
     });
 
@@ -21,7 +19,6 @@ const routeWithAI = async (description) => {
     return await response.json();
   } catch (err) {
     console.warn("AI routing failed:", err.message);
-
     return {
       department: "Unassigned",
       confidence: 0,
@@ -32,11 +29,14 @@ const routeWithAI = async (description) => {
 
 export const addComplaint = async (req, res) => {
   try {
-    const { title, description, latitude, longitude, photo_url } = req.body;
-
+    const { title, description, latitude, longitude } = req.body;
     const user_id = req.user.id;
 
-    // 🤖 Call AI
+    // ✅ Handle both multer file upload AND plain photo_url string
+    const photo_url = req.file
+      ? `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`
+      : req.body.photo_url || null;
+
     const aiResult = await routeWithAI(description);
 
     const complaintData = {
@@ -44,10 +44,8 @@ export const addComplaint = async (req, res) => {
       title,
       description,
       photo_url,
-      latitude,
-      longitude,
-
-      // AI fields
+      latitude: latitude ? parseFloat(latitude) : null,
+      longitude: longitude ? parseFloat(longitude) : null,
       department: aiResult.department,
       ai_confidence: aiResult.confidence,
       ai_status: aiResult.status,
@@ -63,7 +61,6 @@ export const addComplaint = async (req, res) => {
 
   } catch (error) {
     console.error("Complaint error:", error);
-
     res.status(500).json({
       success: false,
       message: "Failed to create complaint",
@@ -71,29 +68,15 @@ export const addComplaint = async (req, res) => {
   }
 };
 
-
-
 export const fetchComplaints = async (req, res) => {
   try {
-    const user = req.user;
-
-    const complaints = await getComplaints(user);
-
-    res.json({
-      success: true,
-      data: complaints
-    });
-
+    const complaints = await getComplaints(req.user);
+    res.json({ success: true, data: complaints });
   } catch (error) {
     console.error("Fetch complaints error:", error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch complaints"
-    });
+    res.status(500).json({ success: false, message: "Failed to fetch complaints" });
   }
 };
-
 
 export const updateComplaint = async (req, res) => {
   try {
@@ -103,25 +86,17 @@ export const updateComplaint = async (req, res) => {
     const updatedComplaint = await updateComplaintStatus(id, status);
 
     if (!updatedComplaint) {
-      return res.status(404).json({
-        success: false,
-        message: "Complaint not found"
-      });
+      return res.status(404).json({ success: false, message: "Complaint not found" });
     }
 
     res.json({
       success: true,
       message: "Complaint updated successfully",
-      data: updatedComplaint
+      data: updatedComplaint,
     });
-
   } catch (error) {
     console.error("Update error:", error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to update complaint"
-    });
+    res.status(500).json({ success: false, message: "Failed to update complaint" });
   }
 };
 
@@ -131,55 +106,34 @@ export const assignComplaintToOfficer = async (req, res) => {
     const { officer_id } = req.body;
 
     if (!officer_id) {
-      return res.status(400).json({
-        success: false,
-        message: "Officer ID is required"
-      });
+      return res.status(400).json({ success: false, message: "Officer ID is required" });
     }
 
     const updatedComplaint = await assignComplaint(id, officer_id);
 
     if (!updatedComplaint) {
-      return res.status(404).json({
-        success: false,
-        message: "Complaint not found"
-      });
+      return res.status(404).json({ success: false, message: "Complaint not found" });
     }
 
     res.json({
       success: true,
       message: "Complaint assigned to officer successfully",
-      data: updatedComplaint
+      data: updatedComplaint,
     });
-
   } catch (error) {
     console.error("Assign error:", error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to assign complaint"
-    });
+    res.status(500).json({ success: false, message: "Failed to assign complaint" });
   }
 };
 
 export const getOfficerAssignedComplaints = async (req, res) => {
   try {
     const officer_id = req.user.id;
-
     const complaints = await getOfficerComplaints(officer_id);
-
-    res.json({
-      success: true,
-      data: complaints
-    });
-
+    res.json({ success: true, data: complaints });
   } catch (error) {
     console.error("Officer fetch error:", error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch officer complaints"
-    });
+    res.status(500).json({ success: false, message: "Failed to fetch officer complaints" });
   }
 };
 
@@ -187,35 +141,28 @@ export const officerUpdateComplaint = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-
     const officer_id = req.user.id;
 
-    // OPTIONAL: ensure officer is assigned to this complaint
+    // Ensure officer is assigned to this complaint
     const complaints = await getOfficerComplaints(officer_id);
     const isAssigned = complaints.find(c => c.id == id);
 
     if (!isAssigned) {
       return res.status(403).json({
         success: false,
-        message: "You are not assigned to this complaint"
+        message: "You are not assigned to this complaint",
       });
     }
- 
+
     const updatedComplaint = await updateComplaintStatus(id, status);
-    
+
     res.json({
       success: true,
       message: "Complaint updated by officer",
-      data: updatedComplaint
+      data: updatedComplaint,
     });
-
   } catch (error) {
     console.error("Officer update error:", error);
-
-    
-    res.status(500).json({
-      success: false,
-      message: "Failed to update complaint"
-    });
+    res.status(500).json({ success: false, message: "Failed to update complaint" });
   }
 };

@@ -1,23 +1,28 @@
 import bcrypt from "bcrypt";
-
 import { getAllUsers, createOfficer } from "../models/userModel.js";
+import pool from "../config/db.js";
 
 export const fetchUsers = async (req, res) => {
   try {
-    const users = await getAllUsers();
+    const { role } = req.query; // ?role=officer filters officers only
+    let users;
 
-    res.json({
-      success: true,
-      data: users
-    });
+    if (role) {
+      const result = await pool.query(
+        "SELECT id, name, email, role, created_at FROM users WHERE role = $1",
+        [role]
+      );
+      users = result.rows;
+    } else {
+      users = await getAllUsers();
+      // Remove passwords
+      users = users.map(({ password, ...u }) => u);
+    }
 
+    res.json({ success: true, data: users });
   } catch (error) {
     console.error("Error in controller:", error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch users"
-    });
+    res.status(500).json({ success: false, message: "Failed to fetch users" });
   }
 };
 
@@ -25,31 +30,17 @@ export const createOfficerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // Validation
     if (!name || !email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "All fields are required"
-      });
+      return res.status(400).json({ success: false, message: "All fields are required" });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-
     const officer = await createOfficer(name, email, hashedPassword);
+    const { password: _, ...officerData } = officer;
 
-    res.status(201).json({
-      success: true,
-      message: "Officer created successfully",
-      data: officer
-    });
-
+    res.status(201).json({ success: true, message: "Officer created successfully", data: officerData });
   } catch (error) {
     console.error("Create officer error:", error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to create officer"
-    });
+    res.status(500).json({ success: false, message: "Failed to create officer" });
   }
 };

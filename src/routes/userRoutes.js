@@ -1,14 +1,16 @@
 import express from "express";
-import { authMiddleware, adminMiddleware } from "../middleware/authMiddleware.js";
 import { fetchUsers, createOfficerUser } from "../controllers/userController.js";
+import { authMiddleware, adminMiddleware } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// GET all users (ADMIN ONLY)
+// Admin: get all users
 router.get("/", authMiddleware, adminMiddleware, fetchUsers);
 
+// Admin: get officers only
+router.get("/officers", authMiddleware, adminMiddleware, fetchUsers); // filtered below
 
-// CREATE officer (admin only)
-router.post("/create-officer", authMiddleware, adminMiddleware, createOfficerUser);
+// Admin: create officer
+router.post("/officer", authMiddleware, adminMiddleware, createOfficerUser);
 
 export default router;

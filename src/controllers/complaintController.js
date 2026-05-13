@@ -15,7 +15,7 @@ const routeWithAI = async (title, description) => {
     // If both are empty, default to Unassigned without calling AI
     if (!fullText) return { department: "Unassigned", confidence: 0, status: "Empty Text" };
 
-    const response = await fetch("http://localhost:8000/route", {
+    const response = await fetch("http://172.23.96.36:8000/route", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ complaint: fullText }), // Must use "complaint" key for the Python API
